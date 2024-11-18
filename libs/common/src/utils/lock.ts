@@ -5,8 +5,7 @@ TODO: for high concurrency with repeated lock requests, consider implementing a 
 */
 export class LockResource {
   private static lockSet: Set<string> = new Set();
-
-  static async lock(key: string, func: () => Promise<void>, log = false) {
+  static async lock<T>(key: string, func: () => Promise<T>, log = false) {
     const logger = new Logger('Lock');
 
     if (LockResource.lockSet.has(key)) {
@@ -17,7 +16,7 @@ export class LockResource {
     LockResource.lockSet.add(key);
 
     try {
-      await func();
+      return func();
     } catch (error) {
       logger.error(`Error occurred while locked for key ${key}:`, error);
     } finally {
