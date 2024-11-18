@@ -34,7 +34,6 @@ export class Sequencer {
   }
 
   async getSequenceNumber(props: SequencerProps) {
-    console.log('this.sequenceCache is', this.sequenceCache);
     return await LockResource.lock(
       `${props.code}-SequencerLock`,
       async () => {
@@ -45,9 +44,7 @@ export class Sequencer {
         }
 
         const nextSequence = ++this.sequenceCache[props.code];
-        console.log('nextSequence', nextSequence);
         let formattedNumber = nextSequence.toString();
-        console.log('formattedNumber', formattedNumber);
 
         if (props.padding) {
           formattedNumber = formattedNumber.padStart(props.padding, '0');
