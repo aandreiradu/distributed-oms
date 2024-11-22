@@ -1,6 +1,5 @@
-import { Body, Controller, Get, Post, UsePipes } from '@nestjs/common';
-import { PrismaService, Sequencer } from '@app/common';
-import { NewOrderDTO, NewOrderDTOSchema } from './dto/newOrder';
+import { Controller, Get } from '@nestjs/common';
+import { Sequencer } from '@app/common';
 import { ZodValidationPipe } from '@app/common/pipes/ZodValidation';
 import { SqsMessageHandler } from '@ssut/nestjs-sqs';
 
@@ -15,12 +14,6 @@ export class OrdersController {
   //     newOrderDTO,
   //   };
   // }
-
-  @SqsMessageHandler('orders', false)
-  async handleNewOrders(sqsMessage: any) {
-    console.log('sqs message was', sqsMessage);
-    return true;
-  }
 
   @Get()
   async getHello() {
