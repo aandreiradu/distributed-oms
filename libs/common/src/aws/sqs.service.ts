@@ -10,13 +10,17 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Message } from 'aws-sdk/clients/sqs';
 
 @Injectable()
 export class SQSService {
   private readonly logger: Logger = new Logger(SQSService.name);
   private sqsClient = new SQSClient();
-  clients: Record<string, SQS> = {};
+
+  constructor(private readonly configService: ConfigService) {
+    if (this.configService.get<string>('NODE_ENV') === 'development') {
+      this.sqsClient['endpoint'] = 'http://localhost:4566';
+    }
+  }
 
   async publishMessage(command: SendMessageCommandInput) {
     try {
