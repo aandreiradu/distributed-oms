@@ -14,7 +14,7 @@ export class GatewayService {
     private readonly configService: ConfigService,
   ) {}
 
-  async forwardToOrders(orderData: any) {
+  async forwardToOrders(orderData: any, correlationId: string) {
     try {
       await this.sqsService.publishMessage({
         QueueUrl: this.configService.get('AWS_SQS_ORDERS_QUEUE_URL'),

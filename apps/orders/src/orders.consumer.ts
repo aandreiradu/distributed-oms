@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SqsMessageHandler } from '@ssut/nestjs-sqs';
+import AWS from 'aws-sdk';
 
 @Injectable()
 export class OrdersConsumer {

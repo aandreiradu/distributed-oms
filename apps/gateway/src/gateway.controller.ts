@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { GatewayService } from './gateway.service';
+import { DOMSRequest } from '@app/common/types/request';
 
 /* 
 TODO: 
@@ -12,7 +13,8 @@ export class GatewayController {
   constructor(private readonly gatewayService: GatewayService) {}
 
   @Post()
-  async sendOrder(@Body() order: any) {
-    return this.gatewayService.forwardToOrders(order);
+  async sendOrder(@Req() req: DOMSRequest, @Body() order: any) {
+    const correlationId = req.headers['X-DOMS-CorrelationId'];
+    return this.gatewayService.forwardToOrders(order, correlationId);
   }
 }
