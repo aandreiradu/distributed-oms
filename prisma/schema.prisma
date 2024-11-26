@@ -7,6 +7,101 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  price       Float
+  sku         String    @unique
+  stock       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  productCategories ProductCategory[]
+  pricing           Pricing[]
+  attributes        ProductAttributes[]
+  orderItem         OrderItem[]
+
+  @@index([sku])
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  productCategories ProductCategory[]
+
+  @@index([name])
+}
+
+model ProductCategory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  categoryId Int
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([productId, categoryId])
+}
+
+model Pricing {
+  id           Int      @id @default(autoincrement())
+  basePrice    Float
+  sellPrice    Float
+  discount     Float?
+  discountUnit String?
+  currency     String   @default("RON")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+model ProductAttributes {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  key   String
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, key])
+  @@index([productId])
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id])
+
+  quantity Int
+  price    Float // Price of the product at the time of order
+  total    Float // Calculated total for this item (price * quantity)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum OrderStatus {
   WAITING_FOR_SELLER_CONFIRMATION
   RECEIVED
@@ -18,10 +113,60 @@ enum OrderStatus {
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
-  productId String
-  quantity  String
-  status    OrderStatus @default(WAITING_FOR_SELLER_CONFIRMATION)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id         Int         @id @default(autoincrement())
+  orderNo    String      @unique
+  status     OrderStatus @default(WAITING_FOR_SELLER_CONFIRMATION)
+  orderItems OrderItem[]
+  payment    Payment[]
+
+  totalAmount Float
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  shipping    Shipping[]
+
+  @@index([orderNo])
+}
+
+enum PaymentMethods {
+  CREDIT_CARD
+  PAYPAL
+  BANK_TRANSFER
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order          @relation(fields: [orderId], references: [id])
+  method  PaymentMethods
+  status  PaymentStatus
+  amount  Float
+
+  createdAt DateTime @default(now())
+}
+
+enum ShippingStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+}
+
+model Shipping {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id])
+
+  address    String
+  city       String
+  postalCode String
+  status     ShippingStatus
+  createdAt  DateTime       @default(now())
 }
