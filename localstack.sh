@@ -58,6 +58,22 @@ create_s3_bucket() {
     echo "successfully applied cors config to bucket" "$BUCKET_NAME"
 }
 
+echo "Creating orders dead letter queue"
+QUEUE_ORDERS_DEAD_LETTER_URL=$(create_dead_letter_queue orders-dead-letter)
+QUEUE_ORDERS_DEAD_LETTERS_ARN=$(guess_queue_arn_from_name orders-dead-letter)
+
+echo "Creating orders queue"
+QUEUE_ORDERS_URL=$(create_queue orders $QUEUE_ORDERS_DEAD_LETTER_URL)
+QUEUE_ORDERS_ARN=$(guess_queue_arn_from_name orders)
+
+
+echo "Creating stock dlq"
+QUEUE_STOCK_DLQ_URL=$(create_dead_letter_queue stock-dead-letter)
+QUEUE_STOCK_DLQ_ARN=$(guess_queue_arn_from_name stock-dead-letter)
+
+echo "Creating stock queue"
+QUEUE_STOCK_URL=$(create_queue stock $QUEUE_STOCK_DLQ_URL)
+QUEUE_STOCK_ARN=$(guess_queue_arn_from_name stock)
 
 # # events topic
 # echo "Creating events topic"
