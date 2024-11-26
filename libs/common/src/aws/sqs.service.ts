@@ -24,7 +24,7 @@ export class SQSService {
 
   async publishMessage(command: SendMessageCommandInput) {
     try {
-      return this.sqsClient.send(new SendMessageCommand(command));
+      await this.sqsClient.send(new SendMessageCommand(command));
     } catch (error) {
       this.logger.error(
         `Failed to send message to queue ${
@@ -33,7 +33,11 @@ export class SQSService {
       );
       this.logger.error(error);
 
-      throw new InternalServerErrorException(`Failed to send message to queue`);
+      throw new InternalServerErrorException({
+        isSuccess: false,
+        message: `Failed to publish message to queue`,
+        error: 'INTERNAL_SERVER_EXCEPTION',
+      });
     }
   }
 }
