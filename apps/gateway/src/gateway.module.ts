@@ -1,8 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { GatewayController } from './gateway.controller';
 import { GatewayService } from './gateway.service';
-import { SqsModule, SqsService } from '@ssut/nestjs-sqs';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { SQSService } from '@app/common/aws/sqs.service';
 import { CidMiddleware } from '@app/common/middlewares/cid';
 

@@ -17,14 +17,31 @@ export class GatewayService {
   async forwardToOrders(orderData: any, correlationId: string) {
     try {
       await this.sqsService.publishMessage({
-        QueueUrl: this.configService.get('AWS_SQS_ORDERS_QUEUE_URL'),
-        MessageBody: JSON.stringify({ order: orderData }),
+        QueueUrl: this.configService.getOrThrow<string>(
+          'AWS_SQS_ORDERS_QUEUE_URL',
+        ),
+        MessageBody: JSON.stringify({
+          order: {
+            ...orderData,
+            status: 'PENDING_VALIDATION',
+          },
+        }),
+        MessageAttributes: {
+          'X-DOMS-CorrelationId': {
+            DataType: 'String',
+            StringValue: correlationId,
+          },
+        },
       });
     } catch (error) {
       this.logger.error('Failed  to publish message to orders queue');
       this.logger.error(error);
 
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException({
+        isSuccess: false,
+        error: 'INTERNAL_SERVER_EXCEPTION',
+        message: 'Order not placed',
+      });
     }
   }
 }

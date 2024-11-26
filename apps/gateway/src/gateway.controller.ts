@@ -15,6 +15,11 @@ export class GatewayController {
   @Post()
   async sendOrder(@Req() req: DOMSRequest, @Body() order: any) {
     const correlationId = req.headers['X-DOMS-CorrelationId'];
-    return this.gatewayService.forwardToOrders(order, correlationId);
+    await this.gatewayService.forwardToOrders(order, correlationId);
+
+    return {
+      isSuccess: true,
+      message: 'Order placed successfully',
+    };
   }
 }
