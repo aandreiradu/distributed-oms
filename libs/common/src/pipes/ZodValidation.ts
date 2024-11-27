@@ -9,11 +9,21 @@ export class ZodValidationPipe implements PipeTransform {
   constructor(private schema: ZodSchema) {}
 
   async transform(value: unknown, metadata: ArgumentMetadata) {
-    try {
-      const parsedValud = await this.schema.parseAsync(value);
-      return parsedValud;
-    } catch (error) {
-      throw new BadRequestException('Validation failed');
+    const result = await this.schema.safeParseAsync(value);
+
+    if (!result.success) {
+      const errorDetails = result.error.errors.map((err) => ({
+        path: err.path.join('.'),
+        message: err.message,
+      }));
+
+      throw new BadRequestException({
+        isSuccess: false,
+        message: 'Validation failed',
+        errors: errorDetails,
+      });
     }
+
+    return result.data;
   }
 }
