@@ -4,6 +4,7 @@ import { GatewayService } from './gateway.service';
 import { ConfigModule } from '@nestjs/config';
 import { SQSService } from '@app/common/aws/sqs.service';
 import { CidMiddleware } from '@app/common/middlewares/cid';
+import { CategoriesModule } from 'apps/categories/src/categories.module';
 
 @Module({
   imports: [
@@ -11,8 +12,8 @@ import { CidMiddleware } from '@app/common/middlewares/cid';
       isGlobal: true,
       cache: true,
     }),
+    CategoriesModule,
   ],
-  controllers: [GatewayController],
   providers: [GatewayService, SQSService],
 })
 export class GatewayModule implements NestModule {
