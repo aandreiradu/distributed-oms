@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(uuid())
   name        String    @db.VarChar(255)
   description String?   @db.Text
   price       Float
@@ -27,8 +27,8 @@ model Product {
 }
 
 model Category {
-  id          Int       @id @default(autoincrement())
-  name        String
+  id          String    @id @default(uuid())
+  name        String    @unique
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -40,9 +40,9 @@ model Category {
 }
 
 model ProductCategory {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  categoryId Int
+  id         String   @id @default(uuid())
+  productId  String
+  categoryId String
   priority   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -54,7 +54,7 @@ model ProductCategory {
 }
 
 model Pricing {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(uuid())
   basePrice    Float
   sellPrice    Float
   discount     Float?
@@ -63,16 +63,16 @@ model Pricing {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  productId Int
+  productId String
   product   Product @relation(fields: [productId], references: [id])
 
   @@index([productId])
 }
 
 model ProductAttributes {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
 
-  productId Int
+  productId String
   product   Product @relation(fields: [productId], references: [id])
 
   key   String
@@ -86,13 +86,13 @@ model ProductAttributes {
 }
 
 model OrderItem {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
 
-  productId Int
+  productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  orderId Int
-  order   Order @relation(fields: [orderId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
 
   quantity Int
   price    Float // Price of the product at the time of order
@@ -113,7 +113,7 @@ enum OrderStatus {
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
+  id         String      @id @default(uuid())
   orderNo    String      @unique
   status     OrderStatus @default(WAITING_FOR_SELLER_CONFIRMATION)
   orderItems OrderItem[]
@@ -141,9 +141,9 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
 
-  orderId Int
+  orderId String
   order   Order          @relation(fields: [orderId], references: [id])
   method  PaymentMethods
   status  PaymentStatus
@@ -159,10 +159,10 @@ enum ShippingStatus {
 }
 
 model Shipping {
-  id Int @id @default(autoincrement())
+  id String @id @default(uuid())
 
-  orderId Int
-  order   Order @relation(fields: [orderId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
 
   address    String
   city       String
