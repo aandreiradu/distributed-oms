@@ -24,9 +24,9 @@ export class CategoriesController {
   }
 
   @Put(':categoryId')
-  @UsePipes(new ZodValidationPipe(UpdateCategorySchema))
   async updateCategoryHandler(
-    @Body() updateCategoryDTO: UpdateCategoryDTO,
+    @Body(new ZodValidationPipe(UpdateCategorySchema))
+    updateCategoryDTO: UpdateCategoryDTO,
     @Param('categoryId') categoryId: string,
   ) {
     return this.categoriesService.updateCategory(categoryId, updateCategoryDTO);
