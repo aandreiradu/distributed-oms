@@ -8,6 +8,8 @@ import { CreateCategoryDTO } from './dto/create-category';
 import { CategoriesRepository } from './categories.repository';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UpdateCategoryDTO } from './dto/update-category';
+import { PrismaTransactionalClient } from '@app/common/types/prisma';
+import { Category } from '@prisma/client';
 
 @Injectable()
 export class CategoriesService {
@@ -85,6 +87,39 @@ export class CategoriesService {
       throw new InternalServerErrorException({
         isSuccess: false,
         message: 'Category not updated',
+        error: 'INTERNAL_SERVER_EXCEPTION',
+      });
+    }
+  }
+
+  async validateCategories(
+    categoryNames: string[],
+    tx: PrismaTransactionalClient = null,
+  ): Promise<Category[]> {
+    try {
+      const categories = await this.categoriesRepository.getCategoryListByName(
+        categoryNames,
+        tx,
+      );
+
+      if (categories.length !== categoryNames.length) {
+        throw new BadRequestException({
+          isSuccess: false,
+          message: 'Some categories do not exist',
+          error: 'VALIDATION_FAILED',
+        });
+      }
+
+      return categories;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+
+      this.logger.error(`Failed to validate categories ${categoryNames}`);
+      this.logger.error(error);
+
+      throw new BadRequestException({
+        isSuccess: false,
+        message: 'Internal server exception occured',
         error: 'INTERNAL_SERVER_EXCEPTION',
       });
     }
