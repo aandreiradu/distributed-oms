@@ -16,7 +16,7 @@ export class Sequencer {
   private sequenceCache: Record<string, number> = {};
   constructor(private readonly prismaService: PrismaService) {}
 
-  private async sequencerFactory(code: string): Promise<number> {
+  private async sequencerFactory(code: string): Promise<string> {
     switch (code) {
       case 'ORDERS': {
         const order = await this.prismaService.order.findFirst({
@@ -24,7 +24,7 @@ export class Sequencer {
           select: { id: true },
         });
 
-        return order?.id || 0;
+        return order?.id;
       }
 
       default: {
@@ -33,31 +33,31 @@ export class Sequencer {
     }
   }
 
-  async getSequenceNumber(props: SequencerProps) {
-    return await LockResource.lock(
-      `${props.code}-SequencerLock`,
-      async () => {
-        if (!this.sequenceCache[props.code]) {
-          this.sequenceCache[props.code] = await this.sequencerFactory(
-            props.code,
-          );
-        }
+  // async getSequenceNumber(props: SequencerProps) {
+  //   return await LockResource.lock(
+  //     `${props.code}-SequencerLock`,
+  //     async () => {
+  //       if (!this.sequenceCache[props.code]) {
+  //         this.sequenceCache[props.code] = await this.sequencerFactory(
+  //           props.code,
+  //         );
+  //       }
 
-        const nextSequence = ++this.sequenceCache[props.code];
-        let formattedNumber = nextSequence.toString();
+  //       const nextSequence = ++this.sequenceCache[props.code];
+  //       let formattedNumber = nextSequence.toString();
 
-        if (props.padding) {
-          formattedNumber = formattedNumber.padStart(props.padding, '0');
-          console.log('padding formattedNumber', formattedNumber);
-        }
+  //       if (props.padding) {
+  //         formattedNumber = formattedNumber.padStart(props.padding, '0');
+  //         console.log('padding formattedNumber', formattedNumber);
+  //       }
 
-        if (props.prefix) {
-          formattedNumber = `${props.prefix}${formattedNumber}`;
-        }
+  //       if (props.prefix) {
+  //         formattedNumber = `${props.prefix}${formattedNumber}`;
+  //       }
 
-        return formattedNumber;
-      },
-      true,
-    );
-  }
+  //       return formattedNumber;
+  //     },
+  //     true,
+  //   );
+  // }
 }
