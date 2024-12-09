@@ -1,22 +1,30 @@
-import { Inject, Logger, OnModuleDestroy } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import Redis, { Command } from 'ioredis';
 
+@Injectable()
 export class RedisService implements OnModuleDestroy {
-  private readonly logger: Logger = new Logger(RedisService.name);
-  constructor(private readonly client: Redis) {}
-
-  getClient() {
-    return this.client;
-  }
+  constructor(@Inject('REDIS_CLIENT') private readonly client: Redis) {}
   async onModuleDestroy() {
     this.client.disconnect();
   }
 
   async set(key: string, value: string, expirationSeconds: number) {
-    return await this.client.set(key, value, 'EX', expirationSeconds);
+    const lockKey = `lock:${key}`;
+
+    return await this.client.set(
+      lockKey,
+      value,
+      ...(['NX', 'EX', expirationSeconds] as any[]),
+    );
   }
 
   async get(key: string): Promise<string | null> {
-    return this.client.get(key);
+    const lockKey = `lock:${key}`;
+    return await this.client.get(lockKey);
+  }
+
+  async delete(key: string): Promise<number> {
+    const lockKey = `lock:${key}`;
+    return await this.client.del(lockKey);
   }
 }

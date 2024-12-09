@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -10,22 +11,16 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UpdateCategoryDTO } from './dto/update-category';
 import { PrismaTransactionalClient } from '@app/common/types/prisma';
 import { Category } from '@prisma/client';
-<<<<<<< Updated upstream
 import { LockDistriburedResource } from '@app/common/utils/lockDS';
-=======
-import { LockResource } from '@app/common';
->>>>>>> Stashed changes
+import { ResourceLockException } from '@app/common/errors/ResourceLock.error';
 
 @Injectable()
 export class CategoriesService {
   private readonly logger: Logger = new Logger(CategoriesService.name);
   constructor(
     private readonly categoriesRepository: CategoriesRepository,
-<<<<<<< Updated upstream
+
     private readonly lockDS: LockDistriburedResource,
-=======
-    private readonly lockResource: LockResource,
->>>>>>> Stashed changes
   ) {}
 
   async createCategory(categoryDTO: CreateCategoryDTO) {
@@ -78,9 +73,8 @@ export class CategoriesService {
         });
       }
 
-<<<<<<< Updated upstream
       return await this.lockDS.lock(categoryId, async () => {
-        const updatedCategory = await this.categoriesRepository.updateCategory(
+        const updatedCategory = await this.categoriesRepository.update(
           categoryId,
           categoryDTO,
         );
@@ -90,26 +84,15 @@ export class CategoriesService {
           category: updatedCategory,
         };
       });
-=======
-      return await LockResource.lock(
-        `${categoryId}-UpdateLock`,
-        async () => {
-          const updatedCategory = await this.categoriesRepository.update(
-            categoryId,
-            categoryDTO,
-          );
-
-          console.log('updatedCategory', updatedCategory);
-
-          return {
-            isSuccess: true,
-            category: updatedCategory,
-          };
-        },
-        true,
-      );
->>>>>>> Stashed changes
     } catch (error) {
+      if (error instanceof ResourceLockException) {
+        throw new BadRequestException({
+          isSuccess: false,
+          error: 'RESOURCE_ALREADY_LOCKED',
+          message: error.message,
+        });
+      }
+
       if (error instanceof BadRequestException) throw error;
 
       this.logger.error(
