@@ -41,10 +41,16 @@ export class CategoriesRepository {
     });
   }
 
-  async updateCategory(categoryId: string, categoryDTO: UpdateCategoryDTO) {
+  async update(categoryId: string, categoryDTO: UpdateCategoryDTO) {
     return this.prismaService.category.update({
       where: { id: categoryId },
       data: categoryDTO,
+    });
+  }
+
+  async delete(categoryId: string) {
+    return this.prismaService.category.delete({
+      where: { id: categoryId },
     });
   }
 }

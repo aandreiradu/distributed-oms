@@ -16,7 +16,7 @@ export class Sequencer {
   private sequenceCache: Record<string, number> = {};
   constructor(private readonly prismaService: PrismaService) {}
 
-  private async sequencerFactory(code: string): Promise<string> {
+  private async sequencerFactory(code: string): Promise<number> {
     switch (code) {
       case 'ORDERS': {
         const order = await this.prismaService.order.findFirst({
@@ -24,7 +24,7 @@ export class Sequencer {
           select: { id: true },
         });
 
-        return order?.id;
+        return +order?.id || 0;
       }
 
       default: {

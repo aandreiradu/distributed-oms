@@ -19,7 +19,10 @@ import Redis from 'ioredis';
         redis.on('error', (error) =>
           console.error('Failed to connect to redirs', error),
         );
+
+        return redis;
       },
+      inject: [ConfigService],
     },
   ],
 })

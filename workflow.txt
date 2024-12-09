@@ -1,0 +1,147 @@
+Updated Order Lifecycle
+Receive Order Request
+
+The Gateway receives the order request and publishes the order message to the orders-queue.
+Validate Stock Availability
+
+The Orders microservice consumes the message from the orders-queue.
+It communicates with the Inventory microservice (synchronously or asynchronously) to check stock availability.
+If stock is not available:
+Publish a message to a stock-unavailable-queue (optional).
+Notify the client (via callback, webhook, or error handling).
+If stock is available:
+Reserve the stock.
+Proceed to the next step.
+Save Order and Initiate Payment
+
+After the stock is confirmed, the Orders microservice saves the order in its database with a status of TO_BE_CONFIRMED.
+A payment request is published to the payments-queue.
+Process Payment
+
+The Payments microservice consumes the payments-queue message and processes the payment.
+It publishes the payment status (e.g., "Payment Successful", "Payment Failed") to the payment-status-queue.
+Update Order Status
+
+The Orders microservice listens to the payment-status-queue and updates the order status accordingly:
+CONFIRMED if payment is successful.
+CANCELED if payment fails.
+Notify Stakeholders and Update Inventory
+
+Send notifications to the customer or stakeholders about the order status.
+Update inventory to reflect the reserved stock being deducted or released.
+Technical Design for Stock Validation
+Option 1: Synchronous Validation (Preferred for Simplicity)
+The Orders microservice calls the Inventory microservice directly using HTTP or gRPC to check and reserve stock.
+If the stock check fails, the request is rejected, and no further processing occurs.
+Option 2: Asynchronous Validation
+After receiving the order message, the Orders microservice publishes a message to the stock-validation-queue.
+The Inventory microservice consumes the message, validates the stock, and responds with a message to a stock-validation-response-queue.
+Code Example for Synchronous Stock Validation
+Orders Microservice: Process Order
+typescript
+Copy code
+async processOrder(order: CreateOrderDto) {
+  try {
+    // Step 1: Validate stock with the Inventory microservice
+    const isStockAvailable = await this.inventoryService.checkAndReserveStock(order.productId, order.quantity);
+
+    if (!isStockAvailable) {
+      console.error(`Stock unavailable for product ${order.productId}`);
+      throw new BadRequestException('Stock not available');
+    }
+
+    // Step 2: Save order with status TO_BE_CONFIRMED
+    const savedOrder = await this.orderRepository.createOrder(order);
+
+    // Step 3: Publish a message to initiate payment
+    await this.sqsService.publishMessage({
+      QueueUrl: process.env.PAYMENTS_QUEUE_URL,
+      MessageBody: JSON.stringify({
+        orderId: savedOrder.id,
+        amount: order.totalAmount,
+        correlationId: order.correlationId,
+      }),
+    });
+
+    console.log(`Order ${savedOrder.id} processed successfully`);
+  } catch (error) {
+    console.error('Error processing order:', error);
+    throw error;
+  }
+}
+Code Example for Asynchronous Stock Validation
+Orders Microservice: Publish to Stock Validation Queue
+typescript
+Copy code
+async processOrder(order: CreateOrderDto) {
+  try {
+    // Step 1: Publish stock validation message
+    await this.sqsService.publishMessage({
+      QueueUrl: process.env.STOCK_VALIDATION_QUEUE_URL,
+      MessageBody: JSON.stringify({
+        orderId: order.id,
+        productId: order.productId,
+        quantity: order.quantity,
+        correlationId: order.correlationId,
+      }),
+    });
+
+    console.log(`Order ${order.id} sent for stock validation`);
+  } catch (error) {
+    console.error('Error sending order for stock validation:', error);
+    throw error;
+  }
+}
+Inventory Microservice: Stock Validation
+typescript
+Copy code
+async validateStock(message: StockValidationMessage) {
+  const { productId, quantity, correlationId } = message;
+
+  const stockAvailable = await this.inventoryRepository.checkStock(productId, quantity);
+
+  if (stockAvailable) {
+    // Reserve stock and publish confirmation
+    await this.inventoryRepository.reserveStock(productId, quantity);
+    await this.sqsService.publishMessage({
+      QueueUrl: process.env.STOCK_VALIDATION_RESPONSE_QUEUE_URL,
+      MessageBody: JSON.stringify({
+        orderId: message.orderId,
+        status: 'STOCK_CONFIRMED',
+        correlationId,
+      }),
+    });
+  } else {
+    // Publish stock unavailable message
+    await this.sqsService.publishMessage({
+      QueueUrl: process.env.STOCK_VALIDATION_RESPONSE_QUEUE_URL,
+      MessageBody: JSON.stringify({
+        orderId: message.orderId,
+        status: 'STOCK_UNAVAILABLE',
+        correlationId,
+      }),
+    });
+  }
+}
+Orders Microservice: Handle Stock Validation Response
+typescript
+Copy code
+async handleStockValidationResponse(message: StockValidationResponseMessage) {
+  const { orderId, status, correlationId } = message;
+
+  if (status === 'STOCK_CONFIRMED') {
+    // Proceed with saving order and initiating payment
+    console.log(`Stock confirmed for order ${orderId}`);
+    await this.processOrderAfterStockValidation(orderId, correlationId);
+  } else {
+    // Handle stock unavailable
+    console.error(`Stock unavailable for order ${orderId}`);
+    await this.orderRepository.updateOrderStatus(orderId, 'STOCK_UNAVAILABLE');
+  }
+}
+Conclusion
+By incorporating stock validation at the beginning of the order lifecycle:
+
+Stock validation ensures feasibility before processing payment or saving the order.
+You can handle stock validation synchronously (simpler) or asynchronously (more scalable).
+Ensure clear logging and correlation IDs for debugging and monitoring.

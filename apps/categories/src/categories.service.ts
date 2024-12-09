@@ -10,11 +10,23 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { UpdateCategoryDTO } from './dto/update-category';
 import { PrismaTransactionalClient } from '@app/common/types/prisma';
 import { Category } from '@prisma/client';
+<<<<<<< Updated upstream
+import { LockDistriburedResource } from '@app/common/utils/lockDS';
+=======
+import { LockResource } from '@app/common';
+>>>>>>> Stashed changes
 
 @Injectable()
 export class CategoriesService {
   private readonly logger: Logger = new Logger(CategoriesService.name);
-  constructor(private readonly categoriesRepository: CategoriesRepository) {}
+  constructor(
+    private readonly categoriesRepository: CategoriesRepository,
+<<<<<<< Updated upstream
+    private readonly lockDS: LockDistriburedResource,
+=======
+    private readonly lockResource: LockResource,
+>>>>>>> Stashed changes
+  ) {}
 
   async createCategory(categoryDTO: CreateCategoryDTO) {
     try {
@@ -66,15 +78,37 @@ export class CategoriesService {
         });
       }
 
-      const updatedCategory = await this.categoriesRepository.updateCategory(
-        categoryId,
-        categoryDTO,
-      );
+<<<<<<< Updated upstream
+      return await this.lockDS.lock(categoryId, async () => {
+        const updatedCategory = await this.categoriesRepository.updateCategory(
+          categoryId,
+          categoryDTO,
+        );
 
-      return {
-        isSuccess: true,
-        category: updatedCategory,
-      };
+        return {
+          isSuccess: true,
+          category: updatedCategory,
+        };
+      });
+=======
+      return await LockResource.lock(
+        `${categoryId}-UpdateLock`,
+        async () => {
+          const updatedCategory = await this.categoriesRepository.update(
+            categoryId,
+            categoryDTO,
+          );
+
+          console.log('updatedCategory', updatedCategory);
+
+          return {
+            isSuccess: true,
+            category: updatedCategory,
+          };
+        },
+        true,
+      );
+>>>>>>> Stashed changes
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
 
@@ -123,5 +157,10 @@ export class CategoriesService {
         error: 'INTERNAL_SERVER_EXCEPTION',
       });
     }
+  }
+
+  async deleteCategory(categoryId: string): Promise<void> {
+    try {
+    } catch (error) {}
   }
 }
