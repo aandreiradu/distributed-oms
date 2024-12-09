@@ -7,6 +7,6 @@ import { CategoriesRepository } from './categories.repository';
 @Module({
   controllers: [CategoriesController],
   providers: [CategoriesService, PrismaService, CategoriesRepository],
-  exports: [CategoriesService],
+  exports: [CategoriesService, CategoriesRepository],
 })
 export class CategoriesModule {}
