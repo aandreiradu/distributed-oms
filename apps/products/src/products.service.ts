@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateProductDTO } from './dto/create-product';
 import { Product } from '@prisma/client';
@@ -19,7 +20,7 @@ export class ProductsService {
     tx: PrismaTransactionalClient = null,
   ): Promise<Product> {
     try {
-      const product = await this.productsRepository.createProduct(
+      const product = await this.productsRepository.create(
         createProductDTO,
         tx,
       );
@@ -75,6 +76,37 @@ export class ProductsService {
       throw new InternalServerErrorException({
         isSuccess: false,
         message: 'Failed to link product to category',
+        error: 'INTERNAL_SERVER_EXCEPTION',
+      });
+    }
+  }
+
+  async getProductDetails(productId: string) {
+    try {
+      const product = await this.productsRepository.find(productId);
+      if (!product) {
+        throw new NotFoundException({
+          isSuccess: false,
+          error: 'NOT_FOUND',
+          message: 'Product not found',
+        });
+      }
+
+      return {
+        isSuccess: true,
+        product,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      this.logger.warn(
+        `Failed to retrieve product details for productId ${productId}`,
+      );
+      this.logger.error(error);
+
+      throw new InternalServerErrorException({
+        isSuccess: false,
+        message: 'Failed to retrieve product details',
         error: 'INTERNAL_SERVER_EXCEPTION',
       });
     }

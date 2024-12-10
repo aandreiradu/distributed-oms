@@ -7,8 +7,6 @@ import { PrismaService } from '@app/common';
 
 @Injectable()
 export class ProductsFacade {
-  private readonly logger: Logger = new Logger(ProductsFacade.name);
-
   constructor(
     private readonly productsService: ProductsService,
     private readonly categoryService: CategoriesService,
@@ -39,5 +37,9 @@ export class ProductsFacade {
 
       return product;
     });
+  }
+
+  async getProductDetails(productId: string) {
+    return this.productsService.getProductDetails(productId);
   }
 }

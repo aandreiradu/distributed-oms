@@ -8,7 +8,7 @@ import { PrismaTransactionalClient } from '@app/common/types/prisma';
 export class ProductsRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createProduct(
+  async create(
     productDTO: CreateProductDTO,
     tx: PrismaTransactionalClient = null,
   ): Promise<Product> {
@@ -20,6 +20,16 @@ export class ProductsRepository {
         sku: productDTO.sku,
         stock: productDTO.stock,
         description: productDTO.description,
+      },
+    });
+  }
+
+  async find(productId: string): Promise<Product> {
+    return this.prismaService.product.findFirst({
+      where: { id: productId },
+      include: {
+        attributes: true,
+        pricing: true,
       },
     });
   }
