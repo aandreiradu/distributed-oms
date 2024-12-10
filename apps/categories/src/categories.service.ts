@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateCategoryDTO } from './dto/create-category';
 import { CategoriesRepository } from './categories.repository';
@@ -142,8 +143,42 @@ export class CategoriesService {
     }
   }
 
-  async deleteCategory(categoryId: string): Promise<void> {
+  async deleteCategory(categoryId: string) {
     try {
-    } catch (error) {}
+      await this.categoriesRepository.delete(categoryId);
+
+      return {
+        isSuccess: true,
+        message: 'Category deleted',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      if (error instanceof PrismaClientKnownRequestError) {
+        const { code } = error;
+
+        switch (code) {
+          case 'P2025': {
+            throw new NotFoundException({
+              isSuccess: false,
+              error: 'NOT_FOUND',
+              message: 'Category not found',
+            });
+          }
+
+          default:
+            break;
+        }
+      }
+      this.logger.warn(`Failed to delete category with id ${categoryId}`);
+      this.logger.error(error);
+      this.logger.error(JSON.stringify(error));
+
+      throw new InternalServerErrorException({
+        isSuccess: false,
+        message: 'Failed to delete category',
+        error: 'INTERNAL_SERVER_EXCEPTION',
+      });
+    }
   }
 }
