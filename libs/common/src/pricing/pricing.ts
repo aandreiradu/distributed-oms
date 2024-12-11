@@ -1,12 +1,12 @@
 import { BadRequestException, Logger } from '@nestjs/common';
-import { disconnect } from 'process';
+import { Currency, DiscountUnit } from '@prisma/client';
 
 type SellPriceArgs = {
   basePrice: number;
   category: string;
-  currency: string;
+  currency: Currency;
   discount?: number;
-  discountUnit?: string;
+  discountUnit?: DiscountUnit;
 };
 
 class PricingWithDiscountFactory {
@@ -16,36 +16,40 @@ class PricingWithDiscountFactory {
     discount: number,
   ): number {
     switch (discountUnit) {
-      case 'PERCENTAGE': {
+      case DiscountUnit.PERCENTAGE: {
+        if (discount > 100) discount = 100;
         return basePrice - (basePrice / 100) * discount;
       }
 
-      case 'UNIT': {
+      case DiscountUnit.UNIT: {
         return basePrice - discount;
       }
 
       default:
-        throw new Error(`Unhandled discount unit ${discountUnit}`);
+        throw new BadRequestException({
+          isSuccess: false,
+          error: 'VALIDATION_FAILED',
+          message: 'Invalid discountUnit',
+        });
     }
   }
 }
 
-export class Pricing {
-  private readonly logger: Logger = new Logger(Pricing.name);
-  private readonly allowedCurrencies = ['RON', 'EUR', 'USD'];
+export default class Pricing {
+  private static readonly logger: Logger = new Logger(Pricing.name);
+  private static readonly allowedCurrencies = ['RON', 'EUR', 'USD'];
   private static maxProfitPercentage: number = 15;
-  constructor() {}
 
-  validateCurrency(currency: string): boolean {
-    return this.allowedCurrencies.includes(currency.toUpperCase());
+  private static validateCurrency(currency: string): boolean {
+    return Pricing.allowedCurrencies.includes(currency.toUpperCase());
   }
 
-  getSellPrice(basePrice: number): number {
+  private static getSellPrice(basePrice: number): number {
     const profit = Math.floor(Math.random() * Pricing.maxProfitPercentage) + 1;
     return basePrice + (profit / 100) * basePrice;
   }
 
-  calculateSellPrice(args: SellPriceArgs): number {
+  static calculateSellPrice(args: SellPriceArgs): number {
     try {
       const allowedCurrency = this.validateCurrency(args.currency);
 
@@ -57,13 +61,15 @@ export class Pricing {
         });
       }
 
+      let sellingPrice = this.getSellPrice(args.basePrice);
+
       if (!args.discount || !args.discountUnit) {
         this.logger.log(`Calculate the price without discount`);
-        return this.getSellPrice(args.basePrice);
+        return sellingPrice;
       }
 
       this.logger.log(`Calculate the price with discount`);
-      const sellingPrice =
+      sellingPrice =
         PricingWithDiscountFactory.calculateSellPriceByDiscountUnit(
           args.basePrice,
           args.discountUnit,
@@ -74,7 +80,7 @@ export class Pricing {
     } catch (error) {
       this.logger.warn(`Failed to calculate selling price ${args}`);
 
-      return null;
+      throw error;
     }
   }
 }
