@@ -8,6 +8,28 @@ type SellPriceArgs = {
   discount?: number;
   discountUnit?: string;
 };
+
+class PricingWithDiscountFactory {
+  static calculateSellPriceByDiscountUnit(
+    basePrice: number,
+    discountUnit: string,
+    discount: number,
+  ): number {
+    switch (discountUnit) {
+      case 'PERCENTAGE': {
+        return basePrice - (basePrice / 100) * discount;
+      }
+
+      case 'UNIT': {
+        return basePrice - discount;
+      }
+
+      default:
+        throw new Error(`Unhandled discount unit ${discountUnit}`);
+    }
+  }
+}
+
 export class Pricing {
   private readonly logger: Logger = new Logger(Pricing.name);
   private readonly allowedCurrencies = ['RON', 'EUR', 'USD'];
@@ -41,6 +63,14 @@ export class Pricing {
       }
 
       this.logger.log(`Calculate the price with discount`);
+      const sellingPrice =
+        PricingWithDiscountFactory.calculateSellPriceByDiscountUnit(
+          args.basePrice,
+          args.discountUnit,
+          args.discount,
+        );
+
+      return sellingPrice;
     } catch (error) {
       this.logger.warn(`Failed to calculate selling price ${args}`);
 
