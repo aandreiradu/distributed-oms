@@ -52,15 +52,27 @@ model ProductCategory {
   @@unique([productId, categoryId])
 }
 
+enum DiscountUnit {
+  PERCENTAGE
+  UNIT
+}
+
+enum Currency {
+  RON
+  EUR
+  USD
+  GBP
+}
+
 model Pricing {
-  id           String   @id @default(uuid())
+  id           String        @id @default(uuid())
   basePrice    Float
   sellPrice    Float
   discount     Float?
-  discountUnit String?
-  currency     String   @default("RON")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  discountUnit DiscountUnit?
+  currency     Currency      @default(RON)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   productId String
   product   Product @relation(fields: [productId], references: [id])
